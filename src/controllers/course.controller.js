@@ -55,30 +55,63 @@ export const createCourse = async (req, res) => {
  *         name: limit
  *         schema: { type: integer, default: 10 }
  *         description: Number of items per page
+ *       - in: query
+ *         name: sort
+ *         schema: 
+ *           type: string
+ *           enum: [asc, desc]
+ *           default: asc
+ *         description: Sort order based on created time
+ *       - in: query
+ *         name: populate
+ *         schema: 
+ *           type: string
+ *         description: Include related models (e.g., TeacherId, CourseId)
  *     responses:
  *       200:
  *         description: List of courses
  */
 export const getAllCourses = async (req, res) => {
-
-    // take certain amount at a time
-    const limit = parseInt(req.query.limit) || 10;
-    // which page to take
-    const page = parseInt(req.query.page) || 1;
-
-    const total = await db.Course.count();
-
     try {
-        const courses = await db.Course.findAll(
-            {
-                // include: [db.Student, db.Teacher],
-                limit: limit, offset: (page - 1) * limit
-            }
-        );
+        // Pagination
+        const limit = parseInt(req.query.limit) || 10;
+        const page = parseInt(req.query.page) || 1;
+
+        // Sorting
+        const sortOrder = req.query.sort === 'desc' ? 'DESC' : 'ASC';
+
+        // Populate (eager loading)
+        let include = [];
+        const populate = req.query.populate;
+
+        if (populate) {
+            const relations = populate.split(',').map(r => r.trim());
+            const validRelations = {
+                TeacherId: db.Teacher,
+                StudentId: db.Student,
+            };
+
+            include = relations
+                .filter(rel => validRelations[rel])
+                .map(rel => ({ model: validRelations[rel] }));
+        }
+
+        // Count total
+        const total = await db.Course.count();
+
+        // Fetch with all options
+        const courses = await db.Course.findAll({
+            limit,
+            offset: (page - 1) * limit,
+            order: [['createdAt', sortOrder]],
+            include,
+        });
+
+        // Response
         res.json({
             meta: {
                 totalItems: total,
-                page: page,
+                page,
                 totalPages: Math.ceil(total / limit),
             },
             data: courses,
