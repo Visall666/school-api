@@ -6,13 +6,14 @@ import {
     updateTeacher,
     deleteTeacher
 } from '../controllers/teacher.controller.js';
+import { authenticateToken } from '../middlewares/auth.middleware.js';
 
 const router = express.Router();
 
-router.post('/', createTeacher);
-router.get('/', getAllTeachers);
-router.get('/:id', getTeacherById);
-router.put('/:id', updateTeacher);
-router.delete('/:id', deleteTeacher);
+router.post('/', authenticateToken, createTeacher);
+router.get('/', authenticateToken, getAllTeachers);
+router.get('/:id', authenticateToken, getTeacherById);
+router.put('/:id', authenticateToken, updateTeacher);
+router.delete('/:id', authenticateToken, deleteTeacher);
 
 export default router;
